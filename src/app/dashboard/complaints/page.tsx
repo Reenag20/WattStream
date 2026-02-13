@@ -16,8 +16,8 @@ export default function ComplaintsPage() {
     if (status === 'Resolved') variant = 'default';
     if (status === 'In Progress') variant = 'secondary';
     
-    const bgClass = status === 'Resolved' ? 'bg-green-600' : 'bg-transparent';
-    return <Badge variant={variant} className={`${bgClass}`}>{status}</Badge>;
+    const className = status === 'Resolved' ? 'bg-green-600' : '';
+    return <Badge variant={variant} className={className}>{status}</Badge>;
   };
 
   return (

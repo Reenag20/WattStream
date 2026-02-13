@@ -10,6 +10,7 @@ import {
   MessageSquareWarning,
   BarChart,
   User,
+  Users,
 } from 'lucide-react';
 import type { Consumer, Bill, Complaint, PaymentStatus } from '@/lib/types';
 import { consumers, bills as allBills, complaints as allComplaints } from '@/lib/mock-data';
@@ -60,8 +61,8 @@ export default function ConsumersPage() {
 
   const StatusBadge = ({ status }: { status: PaymentStatus }) => {
     const variant = status === 'Paid' ? 'default' : status === 'Pending' ? 'secondary' : 'destructive';
-    const bgClass = status === 'Paid' ? 'bg-green-600' : 'bg-transparent';
-    return <Badge variant={variant} className={`${bgClass}`}>{status}</Badge>;
+    const className = status === 'Paid' ? 'bg-green-600' : '';
+    return <Badge variant={variant} className={className}>{status}</Badge>;
   }
 
   return (

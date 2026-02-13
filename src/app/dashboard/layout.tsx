@@ -32,12 +32,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Icons } from '@/components/icons';
+import { complaints } from '@/lib/mock-data';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const activeComplaints = complaints.filter(c => c.status !== 'Resolved').length;
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
@@ -70,9 +73,11 @@ export default function DashboardLayout({
               >
                 <MessageSquareWarning className="h-4 w-4" />
                 Complaints
-                <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                  3
-                </Badge>
+                {activeComplaints > 0 && (
+                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                    {activeComplaints}
+                  </Badge>
+                )}
               </Link>
               <Link
                 href="/dashboard/reports"
@@ -127,6 +132,11 @@ export default function DashboardLayout({
                 >
                   <MessageSquareWarning className="h-5 w-5" />
                   Complaints
+                  {activeComplaints > 0 && (
+                    <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                      {activeComplaints}
+                    </Badge>
+                  )}
                 </Link>
                 <Link
                   href="/dashboard/reports"
