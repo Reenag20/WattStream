@@ -12,8 +12,8 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import type { Consumer, Bill, Complaint, PaymentStatus } from '@/lib/types';
-import { consumers, bills as allBills, complaints as allComplaints } from '@/lib/mock-data';
+import type { Consumer, Bill, Complaint, PaymentStatus, ConnectionStatus, Tariff } from '@/lib/types';
+import { consumers as initialConsumers, bills as allBills, complaints as allComplaints } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,25 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart"
 import { Bar, BarChart as RechartsBarChart, XAxis, YAxis } from "recharts"
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const chartData = [
   { month: "January", consumed: 186 },
@@ -45,9 +64,23 @@ const chartConfig = {
 }
 
 export default function ConsumersPage() {
-  const [selectedConsumer, setSelectedConsumer] = React.useState<Consumer | null>(consumers[0]);
+  const { toast } = useToast();
+  const [consumers, setConsumers] = React.useState<Consumer[]>(initialConsumers);
+  const [selectedConsumer, setSelectedConsumer] = React.useState<Consumer | null>(initialConsumers[0]);
   const [consumerBills, setConsumerBills] = React.useState<Bill[]>([]);
   const [consumerComplaints, setConsumerComplaints] = React.useState<Complaint[]>([]);
+  const [filterStatus, setFilterStatus] = React.useState<ConnectionStatus | 'All'>('All');
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+
+  // New Consumer Form State
+  const [newConsumer, setNewConsumer] = React.useState<Partial<Consumer>>({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    tariff: 'Domestic',
+    status: 'Active',
+  });
 
   React.useEffect(() => {
     if (selectedConsumer) {
@@ -58,6 +91,46 @@ export default function ConsumersPage() {
       setConsumerComplaints([]);
     }
   }, [selectedConsumer]);
+
+  const filteredConsumers = consumers.filter(c => 
+    filterStatus === 'All' ? true : c.status === filterStatus
+  );
+
+  const handleExport = () => {
+    toast({
+      title: "Export Started",
+      description: "The consumer list is being prepared for download.",
+    });
+  };
+
+  const handleAddConsumer = (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = (consumers.length + 1).toString();
+    const consumerId = `C-${1000 + consumers.length + 1}`;
+    const entry: Consumer = {
+      ...newConsumer as Consumer,
+      id,
+      consumerId,
+      meterNumber: `M-${Math.floor(10000 + Math.random() * 90000)}`,
+      joinedDate: new Date().toISOString().split('T')[0],
+    };
+
+    setConsumers([...consumers, entry]);
+    setIsAddDialogOpen(false);
+    setNewConsumer({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      tariff: 'Domestic',
+      status: 'Active',
+    });
+    
+    toast({
+      title: "Consumer Added",
+      description: `${entry.name} has been successfully registered.`,
+    });
+  };
 
   const StatusBadge = ({ status }: { status: PaymentStatus }) => {
     const variant = status === 'Paid' ? 'default' : status === 'Pending' ? 'secondary' : 'destructive';
@@ -80,36 +153,154 @@ export default function ConsumersPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                  <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem checked>Active</DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem>Disconnected</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem 
+                    checked={filterStatus === 'All'}
+                    onClick={() => setFilterStatus('All')}
+                  >
+                    All
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem 
+                    checked={filterStatus === 'Active'}
+                    onClick={() => setFilterStatus('Active')}
+                  >
+                    Active
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem 
+                    checked={filterStatus === 'Disconnected'}
+                    onClick={() => setFilterStatus('Disconnected')}
+                  >
+                    Disconnected
+                  </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button size="sm" variant="outline" className="h-7 gap-1 text-sm">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-sm" onClick={handleExport}>
                 <File className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only">Export</span>
               </Button>
-              <Button size="sm" className="h-7 gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only">Add Consumer</span>
-              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="h-7 gap-1">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Add</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <form onSubmit={handleAddConsumer}>
+                    <DialogHeader>
+                      <DialogTitle>Add New Consumer</DialogTitle>
+                      <DialogDescription>
+                        Enter details to register a new consumer in the system.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input 
+                          id="name" 
+                          required 
+                          value={newConsumer.name}
+                          onChange={e => setNewConsumer({...newConsumer, name: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          required 
+                          value={newConsumer.email}
+                          onChange={e => setNewConsumer({...newConsumer, email: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input 
+                          id="phone" 
+                          required 
+                          value={newConsumer.phone}
+                          onChange={e => setNewConsumer({...newConsumer, phone: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="address">Address</Label>
+                        <Input 
+                          id="address" 
+                          required 
+                          value={newConsumer.address}
+                          onChange={e => setNewConsumer({...newConsumer, address: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="tariff">Tariff</Label>
+                          <Select 
+                            value={newConsumer.tariff}
+                            onValueChange={v => setNewConsumer({...newConsumer, tariff: v as Tariff})}
+                          >
+                            <SelectTrigger id="tariff">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Domestic">Domestic</SelectItem>
+                              <SelectItem value="Commercial">Commercial</SelectItem>
+                              <SelectItem value="Industrial">Industrial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="status">Status</Label>
+                          <Select 
+                            value={newConsumer.status}
+                            onValueChange={v => setNewConsumer({...newConsumer, status: v as ConnectionStatus})}
+                          >
+                            <SelectTrigger id="status">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="Disconnected">Disconnected</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Save Consumer</Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4 h-[70vh] overflow-y-auto">
-              {consumers.map(consumer => (
-                <Card 
-                  key={consumer.id} 
-                  className={`cursor-pointer hover:bg-muted/50 ${selectedConsumer?.id === consumer.id ? 'border-primary' : ''}`}
-                  onClick={() => setSelectedConsumer(consumer)}
-                >
-                  <CardHeader className="p-4">
-                    <CardTitle className="text-base">{consumer.name}</CardTitle>
-                    <CardDescription>{consumer.consumerId} - {consumer.address}</CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
+              {filteredConsumers.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  No consumers found matching criteria.
+                </div>
+              ) : (
+                filteredConsumers.map(consumer => (
+                  <Card 
+                    key={consumer.id} 
+                    className={`cursor-pointer hover:bg-muted/50 transition-all ${selectedConsumer?.id === consumer.id ? 'border-primary ring-1 ring-primary' : ''}`}
+                    onClick={() => setSelectedConsumer(consumer)}
+                  >
+                    <CardHeader className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base">{consumer.name}</CardTitle>
+                          <CardDescription>{consumer.consumerId}</CardDescription>
+                        </div>
+                        <Badge variant={consumer.status === 'Active' ? 'default' : 'destructive'} className="text-[10px] h-5">
+                          {consumer.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -134,14 +325,18 @@ export default function ConsumersPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-2 text-sm">
-                    <div><strong>Address:</strong> {selectedConsumer.address}</div>
-                    <div><strong>Email:</strong> {selectedConsumer.email}</div>
-                    <div><strong>Phone:</strong> {selectedConsumer.phone}</div>
-                    <div><strong>Meter No:</strong> {selectedConsumer.meterNumber}</div>
-                    <div><strong>Tariff:</strong> <Badge variant="secondary">{selectedConsumer.tariff}</Badge></div>
-                    <div><strong>Status:</strong> <Badge variant={selectedConsumer.status === 'Active' ? 'default' : 'destructive'}>{selectedConsumer.status}</Badge></div>
-                    <div><strong>Joined:</strong> {new Date(selectedConsumer.joinedDate).toLocaleDateString()}</div>
+                  <div className="grid gap-4 text-sm md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div><strong>Address:</strong> <span className="text-muted-foreground">{selectedConsumer.address}</span></div>
+                      <div><strong>Email:</strong> <span className="text-muted-foreground">{selectedConsumer.email}</span></div>
+                      <div><strong>Phone:</strong> <span className="text-muted-foreground">{selectedConsumer.phone}</span></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div><strong>Meter No:</strong> <span className="text-muted-foreground">{selectedConsumer.meterNumber}</span></div>
+                      <div><strong>Tariff:</strong> <Badge variant="secondary" className="ml-1">{selectedConsumer.tariff}</Badge></div>
+                      <div><strong>Status:</strong> <Badge variant={selectedConsumer.status === 'Active' ? 'default' : 'destructive'} className="ml-1">{selectedConsumer.status}</Badge></div>
+                      <div><strong>Joined:</strong> <span className="text-muted-foreground">{new Date(selectedConsumer.joinedDate).toLocaleDateString()}</span></div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -164,17 +359,25 @@ export default function ConsumersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {consumerBills.map(bill => (
-                        <TableRow key={bill.id}>
-                          <TableCell>
-                            <div className="font-medium">{bill.period}</div>
+                      {consumerBills.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                            No billing history available.
                           </TableCell>
-                          <TableCell className="hidden sm:table-cell">{bill.units} kWh</TableCell>
-                          <TableCell className="hidden sm:table-cell">${bill.amount.toFixed(2)}</TableCell>
-                          <TableCell className="hidden md:table-cell">{new Date(bill.dueDate).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right"><StatusBadge status={bill.status} /></TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        consumerBills.map(bill => (
+                          <TableRow key={bill.id}>
+                            <TableCell>
+                              <div className="font-medium">{bill.period}</div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">{bill.units} kWh</TableCell>
+                            <TableCell className="hidden sm:table-cell">₹{bill.amount.toFixed(2)}</TableCell>
+                            <TableCell className="hidden md:table-cell">{new Date(bill.dueDate).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right"><StatusBadge status={bill.status} /></TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -184,7 +387,7 @@ export default function ConsumersPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Usage Analytics</CardTitle>
-                  <CardDescription>Monthly electricity consumption.</CardDescription>
+                  <CardDescription>Monthly electricity consumption (kWh).</CardDescription>
                 </CardHeader>
                 <CardContent>
                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
@@ -221,13 +424,21 @@ export default function ConsumersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {consumerComplaints.map(complaint => (
-                        <TableRow key={complaint.id}>
-                          <TableCell>{new Date(complaint.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{complaint.issue}</TableCell>
-                          <TableCell className="text-right"><Badge variant="outline">{complaint.status}</Badge></TableCell>
+                      {consumerComplaints.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                            No complaints reported.
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        consumerComplaints.map(complaint => (
+                          <TableRow key={complaint.id}>
+                            <TableCell>{new Date(complaint.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{complaint.issue}</TableCell>
+                            <TableCell className="text-right"><Badge variant="outline">{complaint.status}</Badge></TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
