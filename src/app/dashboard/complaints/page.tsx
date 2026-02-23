@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { File, ListFilter, MoreHorizontal, PlusCircle } from 'lucide-react';
+import { File, ListFilter, MoreHorizontal, PlusCircle, Eye, Edit, Trash2 } from 'lucide-react';
 import { complaints as initialComplaints } from '@/lib/mock-data';
 import type { ComplaintStatus, Complaint } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -31,12 +31,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ComplaintsPage() {
   const { toast } = useToast();
   const [complaints, setComplaints] = React.useState<Complaint[]>(initialComplaints);
   const [filterStatus, setFilterStatus] = React.useState<string>('All');
+  
+  // Dialog States
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = React.useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = React.useState(false);
+  
+  // Selected Complaint for viewing/updating
+  const [selectedComplaint, setSelectedComplaint] = React.useState<Complaint | null>(null);
 
   // New Complaint Form State
   const [newComplaint, setNewComplaint] = React.useState({
@@ -48,7 +62,7 @@ export default function ComplaintsPage() {
   const handleAddComplaint = (e: React.FormEvent) => {
     e.preventDefault();
     const entry: Complaint = {
-      id: `cmp${complaints.length + 1}`,
+      id: `cmp${Date.now()}`,
       consumerId: newComplaint.consumerId || 'C-Unknown',
       consumerName: newComplaint.consumerName,
       issue: newComplaint.issue,
@@ -63,6 +77,31 @@ export default function ComplaintsPage() {
     toast({
       title: "Complaint Registered",
       description: `A new ticket has been created for ${entry.consumerName}.`,
+    });
+  };
+
+  const handleUpdateStatus = (status: ComplaintStatus) => {
+    if (!selectedComplaint) return;
+    
+    setComplaints(complaints.map(c => 
+      c.id === selectedComplaint.id ? { ...c, status } : c
+    ));
+    setIsUpdateDialogOpen(false);
+    
+    toast({
+      title: "Status Updated",
+      description: `Ticket status for ${selectedComplaint.consumerName} set to ${status}.`,
+    });
+  };
+
+  const handleCloseTicket = (complaint: Complaint) => {
+    setComplaints(complaints.map(c => 
+      c.id === complaint.id ? { ...c, status: 'Resolved' as ComplaintStatus } : c
+    ));
+    
+    toast({
+      title: "Ticket Closed",
+      description: `Complaint from ${complaint.consumerName} has been marked as Resolved.`,
     });
   };
 
@@ -215,10 +254,25 @@ export default function ComplaintsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Update Status</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setIsViewDialogOpen(true);
+                        }}>
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setIsUpdateDialogOpen(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" /> Update Status
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Close Ticket</DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => handleCloseTicket(complaint)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Close Ticket
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -228,6 +282,76 @@ export default function ComplaintsPage() {
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complaint Details</DialogTitle>
+            <DialogDescription>
+              Full information for ticket #{selectedComplaint?.id}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedComplaint && (
+            <div className="grid gap-4 py-4 text-sm">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-bold">Consumer:</Label>
+                <span className="col-span-3">{selectedComplaint.consumerName} ({selectedComplaint.consumerId})</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-bold">Date:</Label>
+                <span className="col-span-3">{new Date(selectedComplaint.date).toLocaleDateString()}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-bold">Status:</Label>
+                <div className="col-span-3"><StatusBadge status={selectedComplaint.status} /></div>
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right font-bold pt-1">Issue:</Label>
+                <p className="col-span-3 text-muted-foreground bg-muted p-3 rounded-md">
+                  {selectedComplaint.issue}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Status Dialog */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Status</DialogTitle>
+            <DialogDescription>
+              Change the progress status for {selectedComplaint?.consumerName}'s ticket.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status-select">Current Status: <StatusBadge status={selectedComplaint?.status || 'Registered'} /></Label>
+              <Select 
+                defaultValue={selectedComplaint?.status} 
+                onValueChange={(v) => handleUpdateStatus(v as ComplaintStatus)}
+              >
+                <SelectTrigger id="status-select">
+                  <SelectValue placeholder="Select new status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Registered">Registered</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Resolved">Resolved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
