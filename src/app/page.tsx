@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Bolt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +12,19 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
+  const { toast } = useToast();
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Coming Soon",
+      description: "Password reset functionality is currently under development.",
+    });
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="mx-auto w-full max-w-sm shadow-2xl">
@@ -38,16 +51,17 @@ export default function LoginPage() {
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="ml-auto inline-block text-sm underline hover:text-primary transition-colors"
                 >
                   Forgot your password?
-                </Link>
+                </button>
               </div>
               <Input id="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full as-child">
+            <Button asChild className="w-full">
               <Link href="/dashboard">Login</Link>
             </Button>
           </div>
