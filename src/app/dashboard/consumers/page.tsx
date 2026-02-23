@@ -17,7 +17,16 @@ import { consumers as initialConsumers, bills as allBills, complaints as allComp
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem
+} from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -69,7 +78,7 @@ export default function ConsumersPage() {
   const [selectedConsumer, setSelectedConsumer] = React.useState<Consumer | null>(initialConsumers[0]);
   const [consumerBills, setConsumerBills] = React.useState<Bill[]>([]);
   const [consumerComplaints, setConsumerComplaints] = React.useState<Complaint[]>([]);
-  const [filterStatus, setFilterStatus] = React.useState<ConnectionStatus | 'All'>('All');
+  const [filterStatus, setFilterStatus] = React.useState<string>('All');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
 
   // New Consumer Form State
@@ -155,24 +164,11 @@ export default function ConsumersPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem 
-                    checked={filterStatus === 'All'}
-                    onClick={() => setFilterStatus('All')}
-                  >
-                    All
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem 
-                    checked={filterStatus === 'Active'}
-                    onClick={() => setFilterStatus('Active')}
-                  >
-                    Active
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem 
-                    checked={filterStatus === 'Disconnected'}
-                    onClick={() => setFilterStatus('Disconnected')}
-                  >
-                    Disconnected
-                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuRadioGroup value={filterStatus} onValueChange={setFilterStatus}>
+                    <DropdownMenuRadioItem value="All">All</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Active">Active</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="Disconnected">Disconnected</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-sm" onClick={handleExport}>

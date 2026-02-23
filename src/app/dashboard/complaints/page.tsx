@@ -7,7 +7,16 @@ import type { ComplaintStatus, Complaint } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem
+} from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -26,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 export default function ComplaintsPage() {
   const { toast } = useToast();
   const [complaints, setComplaints] = React.useState<Complaint[]>(initialComplaints);
-  const [filterStatus, setFilterStatus] = React.useState<ComplaintStatus | 'All'>('All');
+  const [filterStatus, setFilterStatus] = React.useState<string>('All');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
 
   // New Complaint Form State
@@ -95,30 +104,12 @@ export default function ComplaintsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem 
-                checked={filterStatus === 'All'} 
-                onClick={() => setFilterStatus('All')}
-              >
-                All
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={filterStatus === 'Registered'}
-                onClick={() => setFilterStatus('Registered')}
-              >
-                Registered
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={filterStatus === 'In Progress'}
-                onClick={() => setFilterStatus('In Progress')}
-              >
-                In Progress
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem 
-                checked={filterStatus === 'Resolved'}
-                onClick={() => setFilterStatus('Resolved')}
-              >
-                Resolved
-              </DropdownMenuCheckboxItem>
+              <DropdownMenuRadioGroup value={filterStatus} onValueChange={setFilterStatus}>
+                <DropdownMenuRadioItem value="All">All</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="Registered">Registered</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="In Progress">In Progress</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="Resolved">Resolved</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button size="sm" variant="outline" className="h-8 gap-1" onClick={handleExport}>
